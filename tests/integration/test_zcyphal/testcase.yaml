@@ -1,0 +1,10 @@
+tests:
+  zcyphal.integration:
+    platform_allow: native_sim
+    tags: zcyphal
+  zcyphal.integration.canfd:
+    platform_allow: native_sim
+    extra_configs:
+      - CONFIG_ZCYPHAL_CAN_FD=y
+      - CONFIG_ZCYPHAL_CAN_LOOPBACK=y
+    tags: zcyphal
