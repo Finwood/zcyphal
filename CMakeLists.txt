@@ -1,0 +1,11 @@
+if(CONFIG_ZCYPHAL)
+  zephyr_library()
+  zephyr_library_sources(
+    src/zcyphal.c
+  )
+  zephyr_include_directories(include)
+  zephyr_include_directories(${ZEPHYR_CURRENT_MODULE_DIR}/deps/cy/cy)
+  zephyr_include_directories(${ZEPHYR_CURRENT_MODULE_DIR}/deps/cy/lib)
+  zephyr_include_directories(${ZEPHYR_CURRENT_MODULE_DIR}/deps/cy/cy_can)
+  zephyr_include_directories(${ZEPHYR_CURRENT_MODULE_DIR}/deps/libcanard)
+endif()

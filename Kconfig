@@ -1,0 +1,18 @@
+menuconfig ZCYPHAL
+	bool "Cyphal v1.1 over CAN (zcyphal)"
+	select CAN
+	select HWINFO
+	help
+	  Enable the zcyphal module integrating Cyphal v1.1 with Zephyr CAN.
+
+if ZCYPHAL
+
+config ZCYPHAL_HEAP_SIZE
+	int "Cy heap size (bytes)"
+	default 32768
+
+config ZCYPHAL_NODE_HOME
+	string "Default node home name"
+	default "zcyphal"
+
+endif
