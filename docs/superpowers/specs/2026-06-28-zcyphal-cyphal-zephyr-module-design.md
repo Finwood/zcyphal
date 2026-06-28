@@ -166,6 +166,10 @@ identity (§6) → builds the `sys_heap` → `cy_can_zephyr_new(...)` → `cy_ne
 starts the managed spin thread. Optionally auto-runs at boot via `SYS_INIT` when
 `CONFIG_ZCYPHAL_AUTO_INIT=y`.
 
+This single-instance public API is intentionally a thin layer over a
+context-based core so that multiple independent instances (gateway use case)
+can be added later without a rewrite — see §12.
+
 ### Threading & lock contract
 
 - A module-owned thread (Kconfig stack/priority) loops
@@ -290,6 +294,45 @@ relevant subject-IDs (accept-all fallback if HW slots are exhausted).
 - First-class re-wrapping of reliable publish / RPC / streaming (available via the
   native `zcyphal_cy()` escape hatch in v0.1).
 - Deterministic o1heap allocator option.
+- **Multiple independent Cyphal instances in one application** (e.g. a gateway
+  bridging two separate Cyphal/CAN networks). Out of scope for v0.1, but a
+  known future requirement — see §12 for the implementation nudge.
+
+## 12. Forward-compatibility note: multiple independent instances (gateway)
+
+A future requirement is running **two or more independent Cyphal instances in a
+single application**, each bound to a different CAN controller / network — the
+canonical case being a gateway that bridges two separate Cyphal/CAN networks.
+This is **not implemented in v0.1**, but the v0.1 implementation should be steered
+so that adding it later does not require a rewrite.
+
+Implementation nudges (apply now, even while the public API stays single-instance):
+
+- **No singletons for instance state.** Encapsulate everything that is currently
+  "the node" — the `cy_t*`, the `cy_platform_t*`, the `sys_heap`, the spin thread,
+  the lock, the diagnostics listener, the RX queue, and the CAN device binding —
+  in a single heap- or statically-allocated **context struct** (e.g.
+  `struct zcyphal` / `zcyphal_t`). Avoid file-scope mutable globals for any of it.
+- **Context-based core, singleton convenience layer.** Write the core API to take
+  an explicit context (`zcyphal_publish(ctx, ...)`, `zcyphal_subscribe(ctx, ...)`,
+  `zcyphal_cy(ctx)`, etc.), then implement the ergonomic single-instance API of
+  §5 as thin wrappers that pass a default/implicit context. This keeps v0.1 simple
+  while making multi-instance a matter of exposing the context-taking functions.
+- **Per-instance resources, not shared.** Each instance gets its **own** heap
+  region, spin thread (own stack/priority), recursive mutex, RX queue, and filter
+  set. Kconfig values that size these (heap, queues, thread stack) should be
+  expressible per instance later; for v0.1 they may remain global defaults, but the
+  allocation paths must not assume a single shared region.
+- **Identity must differ per instance.** The hwinfo-derived `home`/`prng_seed`
+  (§6) must be combinable with a per-instance discriminator (e.g. an instance index
+  or the CAN device name) so two instances on one device do not collide.
+- **`SYS_INIT` auto-init stays optional.** `CONFIG_ZCYPHAL_AUTO_INIT` should only
+  ever spin up the single default instance; multi-instance setups are expected to
+  init explicitly. Keep auto-init logic separate from the context-based core so it
+  remains a thin, omittable convenience.
+
+The goal is that introducing the gateway use case later becomes an additive change
+(expose the context-taking API, allow N contexts) rather than a structural one.
 
 [cyphal-1.1]: https://forum.opencyphal.org/t/rfc-early-preview-of-cyphal-v1-1/2438
 [libcanard]: https://github.com/OpenCyphal/libcanard
