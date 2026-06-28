@@ -15,6 +15,22 @@ config ZCYPHAL_NODE_HOME
 	string "Default node home name"
 	default "zcyphal"
 
+config ZCYPHAL_CAN_FD
+	bool "Enable CAN FD support"
+	default n
+
+config ZCYPHAL_TX_QUEUE_SIZE
+	int "Cyphal TX queue capacity"
+	default 128
+
+config ZCYPHAL_RX_QUEUE_SIZE
+	int "Zephyr CAN RX queue depth"
+	default 32
+
+config ZCYPHAL_FILTER_COUNT
+	int "Maximum concurrent CAN RX filters"
+	default 8
+
 config ZCYPHAL_PRNG_SEED
 	hex "Fallback PRNG seed when hwinfo is unavailable"
 	default 0x5a63797068616c00

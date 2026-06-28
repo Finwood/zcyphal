@@ -1,9 +1,13 @@
 if(CONFIG_ZCYPHAL)
   zephyr_library()
   zephyr_library_sources(
-    src/zcyphal.c
-    src/heap.c
+    ${ZEPHYR_CURRENT_MODULE_DIR}/deps/cy/cy/cy.c
+    ${ZEPHYR_CURRENT_MODULE_DIR}/deps/cy/cy_can/cy_can.c
+    ${ZEPHYR_CURRENT_MODULE_DIR}/deps/libcanard/canard.c
+    src/cy_can_zephyr.c
     src/identity.c
+    src/heap.c
+    src/zcyphal.c
   )
   zephyr_include_directories(include)
   zephyr_include_directories(${ZEPHYR_CURRENT_MODULE_DIR}/deps/cy/cy)
