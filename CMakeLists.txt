@@ -2,6 +2,7 @@ if(CONFIG_ZCYPHAL)
   zephyr_library()
   zephyr_library_sources(
     src/zcyphal.c
+    src/heap.c
   )
   zephyr_include_directories(include)
   zephyr_include_directories(${ZEPHYR_CURRENT_MODULE_DIR}/deps/cy/cy)
