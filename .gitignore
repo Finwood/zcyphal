@@ -1,0 +1,21 @@
+# Zephyr
+compile_commands.json
+.cache
+**/build/
+/build/
+twister-out*
+release/
+
+# West
+deps/
+
+# Python
+__pycache__/
+.venv/
+*.py[cod]
+/uv.lock
+
+# Editor and OS
+.swp
+.vscode
+.DS_Store

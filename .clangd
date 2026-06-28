@@ -1,0 +1,5 @@
+CompileFlags:
+  Remove: [-fno-reorder-functions, -fno-freestanding, -fno-printf-return-value, -mfp16-format=ieee]
+
+Diagnostics:
+  Suppress: [-Wvla-extension, -Wvla-cxx-extension, -Wunknown-pragmas]
