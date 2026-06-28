@@ -15,4 +15,8 @@ config ZCYPHAL_NODE_HOME
 	string "Default node home name"
 	default "zcyphal"
 
+config ZCYPHAL_PRNG_SEED
+	hex "Fallback PRNG seed when hwinfo is unavailable"
+	default 0x5a63797068616c00
+
 endif
