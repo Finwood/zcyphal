@@ -323,9 +323,18 @@ Implementation nudges (apply now, even while the public API stays single-instanc
   set. Kconfig values that size these (heap, queues, thread stack) should be
   expressible per instance later; for v0.1 they may remain global defaults, but the
   allocation paths must not assume a single shared region.
-- **Identity must differ per instance.** The hwinfo-derived `home`/`prng_seed`
-  (§6) must be combinable with a per-instance discriminator (e.g. an instance index
-  or the CAN device name) so two instances on one device do not collide.
+- **Identity is unique per network, not strictly per instance.** cy only requires
+  the `home` to be unique *within a network* (`cy.h`: "should be unique in the
+  network"); the `prng_seed` contract (§6) says nothing about cross-instance
+  distinctness. For a gateway the two instances sit on two **independent** buses, so
+  the same hwinfo-derived `home`/`prng_seed` on both is not a protocol violation —
+  neither network sees the other's traffic, and node-ID autoconfiguration is handled
+  per-bus by libcanard. Differentiating per instance is therefore **recommended, not
+  required**: it adds robustness if the segments are ever bridged/merged (a gateway
+  is precisely such a node), avoids identical PRNG lockstep, and makes diagnostics
+  clearer. The nudge is to keep the identity derivation **able to incorporate a
+  per-instance discriminator** (e.g. instance index or CAN device name), not to
+  force one in v0.1.
 - **`SYS_INIT` auto-init stays optional.** `CONFIG_ZCYPHAL_AUTO_INIT` should only
   ever spin up the single default instance; multi-instance setups are expected to
   init explicitly. Keep auto-init logic separate from the context-based core so it
