@@ -97,6 +97,8 @@ static bool zcy_rx(void *user, cy_can_rx_t *out_frame, cy_us_t deadline, uint_le
 	timeout = K_USEC(remain_us);
 
 	if (k_msgq_get(&self->rxq, &frame, timeout) != 0) {
+		/* native_sim time does not advance during busy loops; always yield here. */
+		k_sleep(K_MSEC(1));
 		return false;
 	}
 
@@ -231,6 +233,10 @@ cy_platform_t *cy_can_zephyr_new(const struct device *can_dev, struct zcyphal_he
 		self->fd_capable = (cap & CAN_MODE_FD) != 0;
 	}
 
+	mode = CAN_MODE_NORMAL;
+	if (IS_ENABLED(CONFIG_ZCYPHAL_CAN_LOOPBACK)) {
+		mode |= CAN_MODE_LOOPBACK;
+	}
 	if (IS_ENABLED(CONFIG_ZCYPHAL_CAN_FD) && self->fd_capable) {
 		mode |= CAN_MODE_FD;
 	}
@@ -277,6 +283,7 @@ void cy_can_zephyr_destroy(cy_platform_t *platform)
 	self = cy_can_user(platform);
 	zcy_remove_filters(self);
 	cy_can_destroy(platform);
+	(void)can_stop(self->can_dev);
 	zcyphal_heap_realloc(self->heap, self->rxq_buffer, 0);
 	zcyphal_heap_realloc(self->heap, self, 0);
 }

@@ -21,6 +21,7 @@ typedef struct zcyphal {
 	struct k_thread spin_thread;
 	K_KERNEL_STACK_MEMBER(spin_stack, CONFIG_ZCYPHAL_THREAD_STACK_SIZE);
 	atomic_t running;
+	atomic_t initialized;
 	cy_diag_t diag;
 	char home_buf[64];
 } zcyphal_t;

@@ -20,6 +20,13 @@ config ZCYPHAL_CAN_FD
 	bool "Enable CAN FD support"
 	default n
 
+config ZCYPHAL_CAN_LOOPBACK
+	bool "Enable CAN controller loopback mode"
+	default n
+	help
+	  Set CAN_MODE_LOOPBACK on the bound controller. Use with Zephyr
+	  loopback CAN drivers (e.g. native_sim) for local TX/RX testing.
+
 config ZCYPHAL_AUTO_INIT
 	bool "Initialize zcyphal automatically at boot"
 	default n

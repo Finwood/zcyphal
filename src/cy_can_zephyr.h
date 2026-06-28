@@ -2,6 +2,7 @@
 
 #include <cy_can.h>
 #include <zephyr/device.h>
+#include <zephyr/kernel.h>
 #include <zcyphal/heap.h>
 
 struct cy_can_zephyr {

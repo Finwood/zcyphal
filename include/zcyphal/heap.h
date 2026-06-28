@@ -3,7 +3,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-struct sys_heap;
+#include <zephyr/sys/sys_heap.h>
 
 struct zcyphal_heap {
 	uint8_t *buffer;

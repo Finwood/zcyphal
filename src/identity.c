@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <hwinfo.h>
+#include <zephyr/drivers/hwinfo.h>
 #include <zephyr/logging/log.h>
 
 #define RAPIDHASH_COMPACT
@@ -12,10 +12,12 @@
 
 LOG_MODULE_DECLARE(zcyphal);
 
+#define ZCYPHAL_UID_BUF_SIZE 16
+
 int zcyphal_identity_build(char *home_buf, size_t home_buf_len, uint64_t *prng_seed_out,
 			   const char *home_base, const char *discriminator)
 {
-	uint8_t uid[HWINFO_MAX_UID_SIZE];
+	uint8_t uid[ZCYPHAL_UID_BUF_SIZE];
 	ssize_t uid_len;
 	int err;
 

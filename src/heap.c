@@ -1,8 +1,7 @@
 #include <zcyphal/heap.h>
 
 #include <errno.h>
-#include <sys/sys_heap.h>
-#include <zephyr/kernel.h>
+#include <zephyr/sys/sys_heap.h>
 
 int zcyphal_heap_init(struct zcyphal_heap *h, uint8_t *buffer, size_t size)
 {

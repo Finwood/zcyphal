@@ -5,9 +5,9 @@
 
 #include <zephyr/device.h>
 #include <zephyr/devicetree.h>
-#include <zephyr/init.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/sys/atomic.h>
+#include <zephyr/sys/time_units.h>
 
 #include "cy_can_zephyr.h"
 #include <zcyphal/identity.h>
@@ -53,6 +53,7 @@ static void zcyphal_spin_fn(void *p1, void *p2, void *p3)
 			(void)cy_spin_until(ctx->cy, cy_now(ctx->cy) + CONFIG_ZCYPHAL_SPIN_SLICE_US);
 		}
 		k_mutex_unlock(&ctx->lock);
+		k_sleep(K_USEC(100));
 	}
 }
 
@@ -84,6 +85,10 @@ int zcyphal_init_ctx(zcyphal_t *ctx, const struct zcyphal_config *cfg)
 
 	if (ctx == NULL || can_dev == NULL || !device_is_ready(can_dev)) {
 		return -EINVAL;
+	}
+
+	if (atomic_get(&ctx->initialized)) {
+		return -EALREADY;
 	}
 
 	memset(ctx, 0, sizeof(*ctx));
@@ -122,21 +127,25 @@ int zcyphal_init_ctx(zcyphal_t *ctx, const struct zcyphal_config *cfg)
 			zcyphal_spin_fn, ctx, NULL, NULL, CONFIG_ZCYPHAL_THREAD_PRIORITY, 0,
 			K_NO_WAIT);
 	k_thread_name_set(&ctx->spin_thread, "zcyphal_spin");
+	atomic_set(&ctx->initialized, 1);
 
 	return 0;
 }
 
 void zcyphal_shutdown_ctx(zcyphal_t *ctx)
 {
-	if (ctx == NULL) {
+	if (ctx == NULL || !atomic_get(&ctx->initialized)) {
 		return;
 	}
 
 	atomic_set(&ctx->running, 0);
 	k_thread_join(&ctx->spin_thread, K_FOREVER);
 
-	k_mutex_lock(&ctx->lock, K_FOREVER);
 	if (ctx->cy != NULL) {
+		for (int i = 0; i < 10; i++) {
+			(void)cy_spin_until(ctx->cy, cy_now(ctx->cy) + 1000);
+			k_sleep(K_MSEC(1));
+		}
 		cy_diag_remove(ctx->cy, &ctx->diag);
 		cy_destroy(ctx->cy);
 		ctx->cy = NULL;
@@ -145,7 +154,8 @@ void zcyphal_shutdown_ctx(zcyphal_t *ctx)
 		cy_can_zephyr_destroy(ctx->platform);
 		ctx->platform = NULL;
 	}
-	k_mutex_unlock(&ctx->lock);
+
+	atomic_set(&ctx->initialized, 0);
 }
 
 cy_t *zcyphal_cy_ctx(zcyphal_t *ctx)
@@ -179,7 +189,7 @@ int zcyphal_publish_ctx(zcyphal_t *ctx, cy_publisher_t *pub, const void *data, s
 	}
 
 	k_mutex_lock(&ctx->lock, K_FOREVER);
-	deadline = cy_now(ctx->cy) + (cy_us_t)k_timeout_to_us(timeout);
+	deadline = cy_now(ctx->cy) + (cy_us_t)k_ticks_to_us_floor64(timeout.ticks);
 	err = cy_publish(pub, deadline, message);
 	k_mutex_unlock(&ctx->lock);
 
@@ -205,6 +215,9 @@ cy_future_t *zcyphal_subscribe_ctx(zcyphal_t *ctx, const char *topic, size_t ext
 		cy_future_callback_set(future, zcyphal_subscribe_cb);
 	}
 	k_mutex_unlock(&ctx->lock);
+
+	/* Allow the spin thread to process subscription side effects before returning. */
+	k_yield();
 	return future;
 }
 
