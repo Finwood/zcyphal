@@ -2,6 +2,7 @@ menuconfig ZCYPHAL
 	bool "Cyphal v1.1 over CAN (zcyphal)"
 	select CAN
 	select HWINFO
+	select LOG
 	help
 	  Enable the zcyphal module integrating Cyphal v1.1 with Zephyr CAN.
 
@@ -19,6 +20,10 @@ config ZCYPHAL_CAN_FD
 	bool "Enable CAN FD support"
 	default n
 
+config ZCYPHAL_AUTO_INIT
+	bool "Initialize zcyphal automatically at boot"
+	default n
+
 config ZCYPHAL_TX_QUEUE_SIZE
 	int "Cyphal TX queue capacity"
 	default 128
@@ -31,8 +36,32 @@ config ZCYPHAL_FILTER_COUNT
 	int "Maximum concurrent CAN RX filters"
 	default 8
 
+config ZCYPHAL_THREAD_STACK_SIZE
+	int "Spin thread stack size (bytes)"
+	default 4096
+
+config ZCYPHAL_THREAD_PRIORITY
+	int "Spin thread priority"
+	default 5
+
+config ZCYPHAL_SPIN_SLICE_US
+	int "Spin slice duration (microseconds)"
+	default 10000
+
+config ZCYPHAL_NAMESPACE
+	string "Default Cyphal namespace"
+	default ""
+
+config ZCYPHAL_REMAP
+	string "Default Cyphal name remap rules"
+	default ""
+
 config ZCYPHAL_PRNG_SEED
 	hex "Fallback PRNG seed when hwinfo is unavailable"
 	default 0x5a63797068616c00
+
+config ZCYPHAL_TRACE
+	bool "Enable cy internal trace logging"
+	default n
 
 endif

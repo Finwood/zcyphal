@@ -8,10 +8,12 @@ if(CONFIG_ZCYPHAL)
     src/identity.c
     src/heap.c
     src/zcyphal.c
+    src/zcyphal_log.c
   )
   zephyr_include_directories(include)
   zephyr_include_directories(${ZEPHYR_CURRENT_MODULE_DIR}/deps/cy/cy)
   zephyr_include_directories(${ZEPHYR_CURRENT_MODULE_DIR}/deps/cy/lib)
   zephyr_include_directories(${ZEPHYR_CURRENT_MODULE_DIR}/deps/cy/cy_can)
   zephyr_include_directories(${ZEPHYR_CURRENT_MODULE_DIR}/deps/libcanard)
+  zephyr_library_compile_definitions_ifdef(CONFIG_ZCYPHAL_TRACE CY_CONFIG_TRACE=1)
 endif()
