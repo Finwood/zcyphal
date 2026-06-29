@@ -1,3 +1,9 @@
+/**
+ * @file heap.c
+ * @brief @ref zcyphal_heap_init() and @ref zcyphal_heap_realloc() implementations.
+ * @internal
+ */
+
 #include <zcyphal/heap.h>
 
 #include <errno.h>

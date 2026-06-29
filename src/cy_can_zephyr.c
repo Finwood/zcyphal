@@ -1,3 +1,9 @@
+/**
+ * @file cy_can_zephyr.c
+ * @brief cy_can_vtable_t callbacks over the Zephyr CAN driver.
+ * @internal
+ */
+
 #include "cy_can_zephyr.h"
 
 #include <errno.h>
@@ -11,6 +17,7 @@
 
 LOG_MODULE_DECLARE(zcyphal);
 
+/** @brief cy_can @c now vtable; uptime in microseconds. */
 static cy_us_t zcy_now(void *user)
 {
 	ARG_UNUSED(user);
@@ -18,6 +25,7 @@ static cy_us_t zcy_now(void *user)
 	return (cy_us_t)k_ticks_to_us_floor64(k_uptime_ticks());
 }
 
+/** @brief cy_can @c realloc vtable; forwards to @ref zcyphal_heap_realloc(). */
 static void *zcy_realloc(void *user, void *ptr, size_t size)
 {
 	struct cy_can_zephyr *self = user;
@@ -25,6 +33,7 @@ static void *zcy_realloc(void *user, void *ptr, size_t size)
 	return zcyphal_heap_realloc(self->heap, ptr, size);
 }
 
+/** @brief cy_can @c tx_classic vtable; sends an extended classic CAN frame on iface 0. */
 static bool zcy_tx_classic(void *user, canard_us_t deadline, uint_least8_t iface_index,
 			   uint32_t can_id, const void *data, uint_least8_t len)
 {
@@ -47,6 +56,7 @@ static bool zcy_tx_classic(void *user, canard_us_t deadline, uint_least8_t iface
 	return err == 0;
 }
 
+/** @brief cy_can @c tx_fd vtable; sends an extended CAN-FD frame on iface 0. */
 static bool zcy_tx_fd(void *user, canard_us_t deadline, uint_least8_t iface_index, uint32_t can_id,
 		      const void *data, uint_least8_t len)
 {
@@ -69,6 +79,7 @@ static bool zcy_tx_fd(void *user, canard_us_t deadline, uint_least8_t iface_inde
 	return err == 0;
 }
 
+/** @brief Zephyr CAN RX ISR callback; enqueues frames into the platform RX message queue. */
 static void zcy_rx_callback(const struct device *dev, struct can_frame *frame, void *user_data)
 {
 	struct cy_can_zephyr *self = user_data;
@@ -78,6 +89,7 @@ static void zcy_rx_callback(const struct device *dev, struct can_frame *frame, v
 	(void)k_msgq_put(&self->rxq, frame, K_NO_WAIT);
 }
 
+/** @brief cy_can @c rx vtable; dequeues a frame or waits until @p deadline. */
 static bool zcy_rx(void *user, cy_can_rx_t *out_frame, cy_us_t deadline, uint_least8_t tx_pending_iface_bitmap)
 {
 	struct cy_can_zephyr *self = user;
@@ -111,6 +123,7 @@ static bool zcy_rx(void *user, cy_can_rx_t *out_frame, cy_us_t deadline, uint_le
 	return true;
 }
 
+/** @brief Remove all hardware RX filters registered for @p self. */
 static void zcy_remove_filters(struct cy_can_zephyr *self)
 {
 	for (size_t i = 0; i < self->filter_id_count; i++) {
@@ -120,6 +133,7 @@ static void zcy_remove_filters(struct cy_can_zephyr *self)
 	self->filter_id_count = 0;
 }
 
+/** @brief Add one hardware RX filter; returns @c -ENOSPC when the slot table is full. */
 static int zcy_add_filter(struct cy_can_zephyr *self, const struct can_filter *filter)
 {
 	int filter_id;
@@ -137,6 +151,7 @@ static int zcy_add_filter(struct cy_can_zephyr *self, const struct can_filter *f
 	return 0;
 }
 
+/** @brief cy_can @c filter vtable; reprograms Zephyr RX filters from libcanard filter list. */
 static bool zcy_filter(void *user, size_t filter_count, const canard_filter_t *filters)
 {
 	struct cy_can_zephyr *self = user;

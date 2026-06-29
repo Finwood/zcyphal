@@ -1,3 +1,9 @@
+/**
+ * @file identity.c
+ * @brief @ref zcyphal_identity_build() implementation using hwinfo and rapidhash.
+ * @internal
+ */
+
 #include <zcyphal/identity.h>
 
 #include <errno.h>

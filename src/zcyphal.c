@@ -1,3 +1,9 @@
+/**
+ * @file zcyphal.c
+ * @brief zcyphal context core, spin thread, and convenience wrappers.
+ * @internal
+ */
+
 #include <zcyphal/zcyphal.h>
 
 #include <errno.h>
@@ -18,6 +24,7 @@ extern const cy_diag_vtable_t zcyphal_diag_vtable;
 
 static zcyphal_t default_ctx;
 
+/** @brief cy_future callback; dispatches to the app @c zcyphal_sub_cb_t stored in future context. */
 static void zcyphal_subscribe_cb(cy_future_t *future)
 {
 	cy_user_context_t ctx;
@@ -40,6 +47,7 @@ static void zcyphal_subscribe_cb(cy_future_t *future)
 	}
 }
 
+/** @brief Managed spin thread; calls @c cy_spin_until() while @c ctx->running is set. */
 static void zcyphal_spin_fn(void *p1, void *p2, void *p3)
 {
 	zcyphal_t *ctx = p1;
@@ -57,6 +65,7 @@ static void zcyphal_spin_fn(void *p1, void *p2, void *p3)
 	}
 }
 
+/** @brief Resolve default CAN device from devicetree @c chosen zephyr_canbus, or @c NULL. */
 static const struct device *zcyphal_default_can_dev(void)
 {
 #if DT_HAS_CHOSEN(zephyr_canbus)
@@ -252,6 +261,7 @@ cy_future_t *zcyphal_subscribe(const char *topic, size_t extent, zcyphal_sub_cb_
 }
 
 #if defined(CONFIG_ZCYPHAL_AUTO_INIT)
+/** @brief @c SYS_INIT hook; initializes the default context at application start. */
 static int zcyphal_auto_init(void)
 {
 	return zcyphal_init(NULL);
