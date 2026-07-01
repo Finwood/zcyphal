@@ -23,11 +23,13 @@ int main(void)
 	cy_publisher_t *pub = zcyphal_advertise("demo/counter");
 
 	zcyphal_subscribe("demo/counter", 64, on_msg, NULL);
+	k_sleep(K_SECONDS(1));
 
 	uint8_t val = 0;
 
 	while (1) {
 		zcyphal_publish(pub, &val, 1, K_MSEC(500));
+		k_sleep(K_MSEC(500));
 		val++;
 	}
 }
