@@ -1,9 +1,18 @@
 # zcyphal
 
-Zephyr [module][zephyr-module] to integrate [Cyphal v1.1][cyphal-1.1] with Zephyr.
+Zephyr [module][zephyr-module] integrating [Cyphal v1.1][cyphal-1.1] over CAN via
+[`cy`][cy] and [`libcanard`][libcanard] v5.
 
-The goal is to provide support for Cyphal v1.1 through [libcanard][] and [cy][] in a way that is easy and intuitive to use in Zephyr projects.
-As all three projects (Cyphal v1.1, libcanard v5.0-alpha and cy) are still in alpha, don't expect this project to be more stable yet.
+All three upstream stacks are **alpha**; this module pins specific commits and tracks
+them deliberately.
+
+## Features (v0.1)
+
+- West-importable module with pinned `cy` + `libcanard`
+- `cy_can_zephyr` media glue (`cy_can_vtable_t` over Zephyr CAN)
+- Context-based core (`zcyphal_t`) with per-instance heap, spin thread, and mutex
+- Thin convenience API (`zcyphal_advertise` / `publish` / `subscribe`) plus `zcyphal_cy()` escape hatch
+- `native_sim` + CAN loopback sample and Twister integration tests
 
 ## Setup
 
@@ -30,22 +39,70 @@ This repository is a Zephyr T2 workspace (west manifest repo + module). Python t
    uv run west sdk install -b /opt
    ```
 
-   This installs the SDK version from `deps/zephyr/SDK_VERSION` (see the [Zephyr SDK version compatibility matrix](https://github.com/zephyrproject-rtos/sdk-ng/wiki/Zephyr-Version-Compatibility#zephyr-sdk-version-compatibility-matrix)). The `-b /opt` base directory matches [`.envrc`](.envrc), which sets `ZEPHYR_SDK_INSTALL_DIR=/opt/` when a `zephyr-sdk-*` directory is present there.
-
-   To install only the toolchains you need (smaller download), add `-t`, for example:
-
-   ```bash
-   uv run west sdk install -b /opt -t x86_64-zephyr-elf    # native_sim
-   uv run west sdk install -b /opt -t arm-zephyr-eabi      # typical ARM MCUs
-   ```
-
 4. Allow direnv to load the project environment (once per machine):
 
    ```bash
    direnv allow
    ```
 
-   On each `cd` into this repository, direnv runs `.envrc`, which activates the uv virtualenv, adds `scripts/` to `PATH`, and exports Zephyr/SDK variables (`ZEPHYR_TOOLCHAIN_VARIANT`, `ZEPHYR_SDK_INSTALL_DIR`, etc.). Without direnv, source the venv and export those variables manually before building.
+## Import into your west workspace
+
+Add to your manifest:
+
+```yaml
+  projects:
+    - name: zcyphal
+      url: https://github.com/Finwood/zcyphal
+      revision: main
+      path: modules/zcyphal
+```
+
+Or use this repository as your manifest root (T2 workspace).
+
+## Kconfig highlights
+
+| Option | Purpose |
+|--------|---------|
+| `CONFIG_ZCYPHAL` | Enable the module |
+| `CONFIG_ZCYPHAL_CAN_LOOPBACK` | Set `CAN_MODE_LOOPBACK` (required for `native_sim` loopback) |
+| `CONFIG_ZCYPHAL_CAN_FD` | Enable CAN FD TX path |
+| `CONFIG_ZCYPHAL_HEAP_SIZE` | `sys_heap` backing store |
+| `CONFIG_ZCYPHAL_NODE_HOME` | Base node home name (hwinfo suffix appended) |
+| `CONFIG_ZCYPHAL_AUTO_INIT` | Boot-time init via `SYS_INIT` |
+
+See `Kconfig` for TX/RX queue sizes, filter count, thread stack/priority, and spin slice.
+
+## Build & run sample (`native_sim`)
+
+```bash
+export ZEPHYR_BASE=$PWD/deps/zephyr
+export ZEPHYR_SDK_INSTALL_DIR=/opt/
+export ZEPHYR_TOOLCHAIN_VARIANT=zephyr
+
+uv run west build -b native_sim -d /tmp/zcyphal-sample samples/pub_sub
+/tmp/zcyphal-sample/zephyr/zephyr.exe
+```
+
+The sample advertises `demo/counter`, publishes every 500 ms, and logs received bytes on loopback.
+
+## Tests
+
+```bash
+uv run west twister -T tests/integration -p native_sim
+```
+
+## Documentation
+
+- Design: `docs/superpowers/specs/2026-06-28-zcyphal-cyphal-zephyr-module-design.md`
+- Implementation plan: `docs/superpowers/plans/2026-06-28-zcyphal-cyphal-zephyr-module.md`
+
+## Deferred (post-v0.1)
+
+- Multi-interface / redundant CAN
+- UAVCAN v0 / DroneCAN sidecar
+- DSDL / nunavut codegen
+- First-class reliable publish / RPC wrappers
+- Multiple independent instances (gateway); context API is structured for this
 
 [zephyr-module]: https://docs.zephyrproject.org/latest/develop/modules.html
 [cyphal-1.1]: https://forum.opencyphal.org/t/rfc-early-preview-of-cyphal-v1-1/2438

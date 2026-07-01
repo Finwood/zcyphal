@@ -1,1 +1,11 @@
 name: zcyphal
+
+build:
+  cmake: .
+  kconfig: Kconfig
+
+samples:
+  - samples
+
+tests:
+  - tests

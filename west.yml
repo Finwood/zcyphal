@@ -5,6 +5,10 @@ manifest:
   remotes:
     - name: zephyrproject-rtos
       url-base: https://github.com/zephyrproject-rtos
+    - name: opencyphal-garage
+      url-base: https://github.com/OpenCyphal-Garage
+    - name: opencyphal
+      url-base: https://github.com/OpenCyphal
 
   projects:
     - name: zephyr
@@ -16,3 +20,15 @@ manifest:
         path-prefix: deps
         name-allowlist:
           - cmsis_6
+
+    - name: cy
+      remote: opencyphal-garage
+      repo-path: cy
+      path: deps/cy
+      revision: 0a3ab4d22f9f7109cd3e709306625d8d435700db
+      submodules: true
+
+    - name: libcanard
+      remote: opencyphal
+      path: deps/libcanard
+      revision: 254b71601b2d9addf17db0284f4f04a929ff4902
