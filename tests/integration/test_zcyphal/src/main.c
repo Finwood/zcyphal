@@ -32,7 +32,7 @@ static void test_rx_cb(void *user, cy_arrival_t arrival)
 
 ZTEST(zcyphal_integration, test_01_init)
 {
-	zcyphal_t ctx;
+	zcyphal_t ctx = {0};
 
 	zassert_ok(zcyphal_init_ctx(&ctx, NULL));
 	zassert_not_null(zcyphal_cy_ctx(&ctx));

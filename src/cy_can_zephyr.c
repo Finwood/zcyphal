@@ -6,10 +6,10 @@
 
 #include "cy_can_zephyr.h"
 
-#include <errno.h>
 #include <string.h>
 
 #include <canard.h>
+#include <cy.h>
 #include <cy_platform.h>
 #include <zephyr/drivers/can.h>
 #include <zephyr/logging/log.h>
@@ -33,6 +33,48 @@ static void *zcy_realloc(void *user, void *ptr, size_t size)
 	return zcyphal_heap_realloc(self->heap, ptr, size);
 }
 
+#if IS_ENABLED(CONFIG_ZCYPHAL_CAN_LOOPBACK)
+/** @brief Remap source node ID so libcanard does not treat our own TX as a collision. */
+static uint32_t zcy_loopback_remap_src(uint32_t can_id)
+{
+	const uint32_t src = can_id & 0x7Fu;
+
+	if (src == 0U) {
+		return can_id;
+	}
+
+	uint32_t alias = (src ^ 0x55U) & 0x7Fu;
+
+	if (alias == 0U) {
+		alias = 126U;
+	}
+
+	return (can_id & ~0x7Fu) | alias;
+}
+
+/** @brief True for Cyphal application message subjects; excludes gossip shards and broadcast. */
+static bool zcy_loopback_should_inject(uint32_t can_id)
+{
+	const uint32_t subject_id = (can_id >> 8) & 0xFFFFU;
+
+	return subject_id <= CY_SUBJECT_ID_MAX(CY_SUBJECT_ID_MODULUS_16bit);
+}
+
+/** @brief Enqueue a TX frame for local RX when software loopback is enabled. */
+static void zcy_loopback_inject(struct cy_can_zephyr *self, struct can_frame *frame)
+{
+	frame->id = zcy_loopback_remap_src(frame->id & CAN_EXT_ID_MASK);
+
+	if (!zcy_loopback_should_inject(frame->id & CAN_EXT_ID_MASK)) {
+		return;
+	}
+
+	if (k_msgq_put(&self->rxq, frame, K_NO_WAIT) != 0) {
+		LOG_WRN("CAN loopback inject queue full, frame dropped");
+	}
+}
+#endif /* CONFIG_ZCYPHAL_CAN_LOOPBACK */
+
 /** @brief cy_can @c tx_classic vtable; sends an extended classic CAN frame on iface 0. */
 static bool zcy_tx_classic(void *user, canard_us_t deadline, uint_least8_t iface_index,
 			   uint32_t can_id, const void *data, uint_least8_t len)
@@ -53,6 +95,9 @@ static bool zcy_tx_classic(void *user, canard_us_t deadline, uint_least8_t iface
 	memcpy(frame.data, data, MIN(len, 8));
 
 	err = can_send(self->can_dev, &frame, K_NO_WAIT, NULL, NULL);
+	if (err == 0 && IS_ENABLED(CONFIG_ZCYPHAL_CAN_LOOPBACK)) {
+		zcy_loopback_inject(self, &frame);
+	}
 	return err == 0;
 }
 
@@ -76,17 +121,23 @@ static bool zcy_tx_fd(void *user, canard_us_t deadline, uint_least8_t iface_inde
 	memcpy(frame.data, data, MIN(len, CAN_MAX_DLEN));
 
 	err = can_send(self->can_dev, &frame, K_NO_WAIT, NULL, NULL);
+	if (err == 0 && IS_ENABLED(CONFIG_ZCYPHAL_CAN_LOOPBACK)) {
+		zcy_loopback_inject(self, &frame);
+	}
 	return err == 0;
 }
 
-/** @brief Zephyr CAN RX ISR callback; enqueues frames into the platform RX message queue. */
+/** @brief Zephyr CAN RX callback; enqueues frames into the platform RX message queue. */
 static void zcy_rx_callback(const struct device *dev, struct can_frame *frame, void *user_data)
 {
 	struct cy_can_zephyr *self = user_data;
+	k_timeout_t timeout = k_is_in_isr() ? K_NO_WAIT : K_FOREVER;
 
 	ARG_UNUSED(dev);
 
-	(void)k_msgq_put(&self->rxq, frame, K_NO_WAIT);
+	if (k_msgq_put(&self->rxq, frame, timeout) != 0) {
+		LOG_WRN("CAN RX queue full, frame dropped");
+	}
 }
 
 /** @brief cy_can @c rx vtable; dequeues a frame or waits until @p deadline. */
@@ -249,9 +300,6 @@ cy_platform_t *cy_can_zephyr_new(const struct device *can_dev, struct zcyphal_he
 	}
 
 	mode = CAN_MODE_NORMAL;
-	if (IS_ENABLED(CONFIG_ZCYPHAL_CAN_LOOPBACK)) {
-		mode |= CAN_MODE_LOOPBACK;
-	}
 	if (IS_ENABLED(CONFIG_ZCYPHAL_CAN_FD) && self->fd_capable) {
 		mode |= CAN_MODE_FD;
 	}

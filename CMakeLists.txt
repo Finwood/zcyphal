@@ -16,4 +16,9 @@ if(CONFIG_ZCYPHAL)
   zephyr_include_directories(${ZEPHYR_CURRENT_MODULE_DIR}/deps/cy/cy_can)
   zephyr_include_directories(${ZEPHYR_CURRENT_MODULE_DIR}/deps/libcanard/libcanard)
   zephyr_library_compile_definitions_ifdef(CONFIG_ZCYPHAL_TRACE CY_CONFIG_TRACE=1)
+  # wild_key_value (in cy.c) miscompiles under -Os on GCC for multi-segment topic names.
+  set_source_files_properties(
+    ${ZEPHYR_CURRENT_MODULE_DIR}/deps/cy/cy/cy.c
+    PROPERTIES COMPILE_OPTIONS -Og
+  )
 endif()
