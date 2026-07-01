@@ -8,6 +8,10 @@ menuconfig ZCYPHAL
 
 if ZCYPHAL
 
+module = ZCYPHAL
+module-str = zcyphal
+source "${ZEPHYR_BASE}/subsys/logging/Kconfig.template.log_config"
+
 config ZCYPHAL_HEAP_SIZE
 	int "Cy heap size (bytes)"
 	default 32768

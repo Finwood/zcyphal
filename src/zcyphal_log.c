@@ -11,7 +11,7 @@
 
 #include <zephyr/logging/log.h>
 
-LOG_MODULE_REGISTER(zcyphal, LOG_LEVEL_INF);
+LOG_MODULE_REGISTER(zcyphal, CONFIG_ZCYPHAL_LOG_LEVEL);
 
 /** @brief cy_diag @c async_error; logs warning with error code and source line. */
 static void zcyphal_diag_async_error(cy_diag_t *diag, cy_topic_t *topic, cy_err_t err,
